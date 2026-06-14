@@ -99,12 +99,6 @@ Address1,Address2,Suburb,State,Postcode
 456 George Street,,Melbourne,VIC,3000
 ```
 
-**Supported column name variations:**
-- Address 1: `address1`, `address_1`, `address 1`
-- Address 2: `address2`, `address_2`, `address 2`
-- Suburb: `suburb`
-- State: `state`
-- Postcode: `postcode`, `pcode`, `postalcode`
 
 ### Validation Rules
 
