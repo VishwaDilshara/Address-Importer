@@ -1,58 +1,182 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Address Importer
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Laravel-based web application for importing and validating Australian addresses from CSV files. This application provides a user-friendly interface to upload CSV files, validate address data against Australian standards, and store valid addresses in the database.
 
-## About Laravel
+## Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **CSV File Upload**: Upload CSV or Excel files containing address data
+- **Smart Column Mapping**: Automatically maps CSV columns to address fields
+- **Australian Address Validation**: Validates addresses against Australian standards
+  - Required fields: Address Line 1, Suburb, State, Postcode
+  - Postcode format validation (4 digits)
+  - Australian state code validation (NSW, VIC, QLD, SA, WA, TAS, NT, ACT)
+- **Two-Step Import Process**: Preview validated data before inserting into database
+- **Validation Status Tracking**: Track valid and invalid addresses separately
+- **Error Reporting**: Detailed error messages for invalid addresses
+- **Modern UI**: Clean, responsive interface built with Tailwind CSS
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Requirements
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- PHP >= 8.2
+- Composer
+- Node.js & NPM
+- MySQL, PostgreSQL, or SQLite database
 
-## Learning Laravel
+## Installation
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd Address-Importer
+   ```
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+2. **Install dependencies**
+   ```bash
+   composer install
+   npm install
+   ```
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+3. **Environment setup**
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
 
-## Agentic Development
+4. **Configure database**
+   Edit `.env` file and set your database credentials:
+   ```env
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=address_importer
+   DB_USERNAME=your_username
+   DB_PASSWORD=your_password
+   ```
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+5. **Run migrations**
+   ```bash
+   php artisan migrate
+   ```
 
-```bash
-composer require laravel/boost --dev
+6. **Build assets**
+   ```bash
+   npm run build
+   ```
 
-php artisan boost:install
+7. **Start the development server**
+   ```bash
+   php artisan serve
+   ```
+
+   Access the application at `http://localhost:8000`
+
+## Usage
+
+### Importing Addresses
+
+1. Navigate to the home page (`/` or `/address-import`)
+2. Click "Choose File" and select your CSV file
+3. Click "Import CSV" to upload and validate
+4. Review the validation results:
+   - **Valid Addresses**: Shown in green, ready to be inserted
+   - **Invalid Addresses**: Shown in red with error details
+5. Click "Insert to Table" to save valid addresses to the database
+
+### CSV Format Requirements
+
+Your CSV file should contain the following columns (headers can vary):
+
+- **Address Line 1** (required): Street address
+- **Address Line 2** (optional): Apartment, suite, unit, etc.
+- **Suburb** (required): Suburb or city name
+- **State** (required): Australian state code (NSW, VIC, QLD, SA, WA, TAS, NT, ACT)
+- **Postcode** (required): 4-digit Australian postcode
+
+**Example CSV:**
+```csv
+Address1,Address2,Suburb,State,Postcode
+123 Main Street,Apt 4,Sydney,NSW,2000
+456 George Street,,Melbourne,VIC,3000
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+**Supported column name variations:**
+- Address 1: `address1`, `address_1`, `address 1`
+- Address 2: `address2`, `address_2`, `address 2`
+- Suburb: `suburb`
+- State: `state`
+- Postcode: `postcode`, `pcode`, `postalcode`
 
-## Contributing
+### Validation Rules
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+The application validates addresses according to Australian standards:
 
-## Code of Conduct
+- **Address Line 1**: Must not be empty
+- **Suburb**: Must not be empty
+- **State**: Must be a valid Australian state code:
+  - NSW (New South Wales)
+  - VIC (Victoria)
+  - QLD (Queensland)
+  - SA (South Australia)
+  - WA (Western Australia)
+  - TAS (Tasmania)
+  - NT (Northern Territory)
+  - ACT (Australian Capital Territory)
+- **Postcode**: Must be exactly 4 digits
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Testing
 
-## Security Vulnerabilities
+Test CSV files are included in the project root:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+- `test-address-list.csv`: Valid addresses for testing
+- `test-address-list_invalid.csv`: Invalid addresses for testing validation
 
-## License
+Run the test suite:
+```bash
+php artisan test
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Project Structure
+
+```
+├── app/
+│   ├── Http/
+│   │   └── Controllers/
+│   │       └── AddressImportController.php  # Main import logic
+│   └── Models/
+│       └── Address.php                      # Address model with validation
+├── database/
+│   └── migrations/
+│       └── create_addresses_table.php       # Database schema
+├── resources/
+│   └── views/
+│       └── address-import/
+│           └── index.blade.php              # Main UI
+└── routes/
+    └── web.php                              # Route definitions
+```
+
+## Technologies Used
+
+- **Backend**: Laravel 13.8 (PHP Framework)
+- **Frontend**: Blade Templates, Tailwind CSS 4.0
+- **CSV Processing**: Maatwebsite Excel 3.1
+- **Build Tool**: Vite 8.0
+- **Database**: Eloquent ORM
+
+## Development
+
+### Quick Setup Script
+
+Use the composer setup script for automated installation:
+```bash
+composer run setup
+```
+
+### Development Server
+
+Run all development services (server, queue, logs, vite):
+```bash
+composer run dev
+```
+
+
