@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AddressImportController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect('/address-import');
 });
 
 Route::prefix('address-import')->name('address-import.')->group(function () {
