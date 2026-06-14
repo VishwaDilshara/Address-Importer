@@ -74,7 +74,7 @@ A Laravel-based web application for importing and validating Australian addresse
 
 ### Importing Addresses
 
-1. Navigate to the home page (`/` or `/address-import`)
+1. Navigate to the home page
 2. Click "Choose File" and select your CSV file
 3. Click "Import CSV" to upload and validate
 4. Review the validation results:
