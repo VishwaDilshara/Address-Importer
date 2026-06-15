@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Services\GoogleAddressVerificationService;
+use App\Services\AddressValidationService;
 use App\Models\Address;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -17,9 +17,6 @@ class VerifyAddressJob implements ShouldQueue
     protected $index;
     protected $total;
 
-    /**
-     * Create a new job instance.
-     */
     public function __construct(array $addressData, string $batchId, int $index, int $total)
     {
         $this->addressData = $addressData;
@@ -31,42 +28,48 @@ class VerifyAddressJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(GoogleAddressVerificationService $verificationService): void
+    public function handle(AddressValidationService $verificationService): void
     {
-        // Verify address using Google API
+        // Validate address (OSM)
         $verificationResult = $verificationService->verifyAddress($this->addressData);
 
-        // Store the result in database
+        // Save to DB
         $address = Address::create([
             'address_1' => $this->addressData['address_1'],
-            'address_2' => $this->addressData['address_2'],
+            'address_2' => $this->addressData['address_2'] ?? null,
             'suburb' => $this->addressData['suburb'],
             'state' => $this->addressData['state'],
             'postcode' => $this->addressData['postcode'],
+
             'validation_status' => $verificationResult['status'],
-            'validation_errors' => $verificationResult['status'] === 'invalid' ? $verificationResult['message'] : null,
+            'validation_errors' => $verificationResult['status'] === 'invalid'
+                ? $verificationResult['message']
+                : null,
+
             'validation_message' => $verificationResult['message'],
+
             'corrected_address_1' => $verificationResult['corrected_address']['address_1'] ?? null,
             'corrected_address_2' => $verificationResult['corrected_address']['address_2'] ?? null,
             'corrected_suburb' => $verificationResult['corrected_address']['suburb'] ?? null,
             'corrected_state' => $verificationResult['corrected_address']['state'] ?? null,
             'corrected_postcode' => $verificationResult['corrected_address']['postcode'] ?? null,
+
             'google_api_response' => $verificationResult['google_api_response'],
             'is_google_verified' => $verificationResult['is_google_verified'],
+
             'imported_at' => now(),
         ]);
 
-        // Update progress in cache
         $this->updateProgress($address->id, $verificationResult);
     }
 
     /**
-     * Update progress in cache for real-time tracking
+     * Update progress in cache
      */
     protected function updateProgress(int $addressId, array $verificationResult): void
     {
         $progressKey = "address_verification_progress_{$this->batchId}";
-        
+
         $progress = Cache::get($progressKey, [
             'total' => $this->total,
             'processed' => 0,
@@ -77,8 +80,11 @@ class VerifyAddressJob implements ShouldQueue
         ]);
 
         $progress['processed']++;
-        $progress[$verificationResult['status']]++;
-        
+
+        if (isset($progress[$verificationResult['status']])) {
+            $progress[$verificationResult['status']]++;
+        }
+
         $progress['results'][] = [
             'id' => $addressId,
             'index' => $this->index,
