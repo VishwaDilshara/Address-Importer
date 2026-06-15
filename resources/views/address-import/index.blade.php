@@ -143,6 +143,45 @@
             @endif
         </div>
 
+        <!-- Database Corrected Addresses -->
+        @if($dbCorrectedAddresses->count() > 0)
+            <div class="bg-white rounded-lg shadow-md p-6 mb-8 border-2 border-yellow-200">
+                <h2 class="text-xl font-semibold text-yellow-700 mb-4">Database Corrected Addresses ({{ $dbCorrectedAddresses->count() }})</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white">
+                        <thead class="bg-yellow-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-gray-700">Original Address</th>
+                                <th class="px-4 py-2 text-left text-gray-700">Corrected Address</th>
+                                <th class="px-4 py-2 text-left text-gray-700">Message</th>
+                                <th class="px-4 py-2 text-left text-gray-700">Imported At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($dbCorrectedAddresses as $address)
+                                <tr class="border-b">
+                                    <td class="px-4 py-2">
+                                        {{ $address->address_1 }}<br>
+                                        <span class="text-gray-500 text-sm">{{ $address->address_2 ?? '-' }}, {{ $address->suburb }}, {{ $address->state }} {{ $address->postcode }}</span>
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        @if($address->corrected_address_1)
+                                            {{ $address->corrected_address_1 }}<br>
+                                            <span class="text-yellow-600 text-sm">{{ $address->corrected_address_2 ?? '-' }}, {{ $address->corrected_suburb }}, {{ $address->corrected_state }} {{ $address->corrected_postcode }}</span>
+                                        @else
+                                            <span class="text-gray-400">No correction available</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-2 text-yellow-600 text-sm">{{ $address->validation_message }}</td>
+                                    <td class="px-4 py-2">{{ $address->imported_at ? $address->imported_at->format('Y-m-d H:i:s') : '-' }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        @endif
+
         <!-- Database Invalid Addresses -->
         <div class="bg-white rounded-lg shadow-md p-6">
             <h2 class="text-xl font-semibold text-red-700 mb-4">Database Invalid Addresses ({{ $dbInvalidAddresses->count() }})</h2>
@@ -168,7 +207,7 @@
                                     <td class="px-4 py-2">{{ $address->suburb ?? '-' }}</td>
                                     <td class="px-4 py-2">{{ $address->state ?? '-' }}</td>
                                     <td class="px-4 py-2">{{ $address->postcode ?? '-' }}</td>
-                                    <td class="px-4 py-2 text-red-600">{{ $address->validation_errors }}</td>
+                                    <td class="px-4 py-2 text-red-600">{{ $address->validation_errors ?? $address->validation_message }}</td>
                                     <td class="px-4 py-2">{{ $address->imported_at ? $address->imported_at->format('Y-m-d H:i:s') : '-' }}</td>
                                 </tr>
                             @endforeach

@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Address;
+use App\Jobs\VerifyAddressJob;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 
 class AddressImportController extends Controller
 {
@@ -17,8 +20,9 @@ class AddressImportController extends Controller
         
         $dbValidAddresses = Address::where('validation_status', 'valid')->latest()->get();
         $dbInvalidAddresses = Address::where('validation_status', 'invalid')->latest()->get();
+        $dbCorrectedAddresses = Address::where('validation_status', 'corrected')->latest()->get();
 
-        return view('address-import.index', compact('pendingValidAddresses', 'pendingInvalidAddresses', 'dbValidAddresses', 'dbInvalidAddresses'));
+        return view('address-import.index', compact('pendingValidAddresses', 'pendingInvalidAddresses', 'dbValidAddresses', 'dbInvalidAddresses', 'dbCorrectedAddresses'));
     }
 
     public function import(Request $request)
@@ -28,9 +32,6 @@ class AddressImportController extends Controller
         ]);
 
         $file = $request->file('file');
-        $importedCount = 0;
-        $validCount = 0;
-        $invalidCount = 0;
 
         try {
             $data = Excel::toCollection(new class implements ToCollection {
@@ -67,9 +68,7 @@ class AddressImportController extends Controller
                 }
             }
 
-            $validAddresses = [];
-            $invalidAddresses = [];
-
+            $addresses = [];
             foreach ($rows as $row) {
                 $addressData = [
                     'address_1' => isset($columnMap['address_1']) ? trim($row[$columnMap['address_1']] ?? '') : trim($row[0] ?? ''),
@@ -78,41 +77,55 @@ class AddressImportController extends Controller
                     'state' => isset($columnMap['state']) ? trim($row[$columnMap['state']] ?? '') : trim($row[3] ?? ''),
                     'postcode' => isset($columnMap['postcode']) ? trim($row[$columnMap['postcode']] ?? '') : trim($row[4] ?? ''),
                 ];
-
-                $validation = Address::validateAddress($addressData);
-
-                $addressRecord = [
-                    'address_1' => $addressData['address_1'],
-                    'address_2' => $addressData['address_2'],
-                    'suburb' => $addressData['suburb'],
-                    'state' => $addressData['state'],
-                    'postcode' => $addressData['postcode'],
-                    'validation_status' => $validation['is_valid'] ? 'valid' : 'invalid',
-                    'validation_errors' => $validation['is_valid'] ? null : implode(', ', $validation['errors']),
-                ];
-
-                if ($validation['is_valid']) {
-                    $validAddresses[] = $addressRecord;
-                    $validCount++;
-                } else {
-                    $invalidAddresses[] = $addressRecord;
-                    $invalidCount++;
-                }
-
-                $importedCount++;
+                $addresses[] = $addressData;
             }
 
-            // Store validated records in session
-            session(['pending_valid_addresses' => $validAddresses]);
-            session(['pending_invalid_addresses' => $invalidAddresses]);
+            // Generate batch ID for tracking
+            $batchId = Str::uuid();
+            $total = count($addresses);
 
-            return redirect()->route('address-import.index')
-                ->with('success', "Import completed: {$importedCount} records validated ({$validCount} valid, {$invalidCount} invalid). Click 'Insert to Table' to save valid records.");
+            // Initialize progress in cache
+            Cache::put("address_verification_progress_{$batchId}", [
+                'total' => $total,
+                'processed' => 0,
+                'valid' => 0,
+                'invalid' => 0,
+                'corrected' => 0,
+                'results' => [],
+            ], now()->addHours(2));
+
+            // Store addresses in session for processing
+            session(['import_batch_id' => $batchId]);
+            session(['import_addresses' => $addresses]);
+
+            // Dispatch jobs for each address
+            foreach ($addresses as $index => $address) {
+                VerifyAddressJob::dispatch($address, $batchId, $index + 1, $total);
+            }
+
+            return redirect()->route('address-import.processing', ['batchId' => $batchId]);
 
         } catch (\Exception $e) {
             return redirect()->route('address-import.index')
                 ->with('error', 'Error importing file: ' . $e->getMessage());
         }
+    }
+
+    public function processing(Request $request, $batchId)
+    {
+        return view('address-import.processing', compact('batchId'));
+    }
+
+    public function progress($batchId)
+    {
+        $progressKey = "address_verification_progress_{$batchId}";
+        $progress = Cache::get($progressKey);
+
+        if (!$progress) {
+            return response()->json(['error' => 'Progress not found'], 404);
+        }
+
+        return response()->json($progress);
     }
 
     public function insertToDatabase()

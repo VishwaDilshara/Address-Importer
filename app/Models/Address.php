@@ -14,11 +14,20 @@ class Address extends Model
         'postcode',
         'validation_status',
         'validation_errors',
+        'validation_message',
+        'corrected_address_1',
+        'corrected_address_2',
+        'corrected_suburb',
+        'corrected_state',
+        'corrected_postcode',
+        'google_api_response',
+        'is_google_verified',
         'imported_at',
     ];
 
     protected $casts = [
         'imported_at' => 'datetime',
+        'google_api_response' => 'array',
     ];
 
     public static function validateAddress(array $data): array
