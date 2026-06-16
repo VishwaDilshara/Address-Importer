@@ -54,9 +54,6 @@ class VerifyAddressJob implements ShouldQueue
             'corrected_state' => $verificationResult['corrected_address']['state'] ?? null,
             'corrected_postcode' => $verificationResult['corrected_address']['postcode'] ?? null,
 
-            'google_api_response' => $verificationResult['google_api_response'],
-            'is_google_verified' => $verificationResult['is_google_verified'],
-
             'imported_at' => now(),
         ]);
 

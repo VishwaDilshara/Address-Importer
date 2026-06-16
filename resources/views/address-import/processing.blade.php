@@ -61,7 +61,7 @@
                 </svg>
             </div>
             <h1 class="text-3xl font-bold text-gray-800 mb-2">Processing Addresses</h1>
-            <p class="text-gray-600">Validating addresses using Google Geocoding API</p>
+            <p class="text-gray-600">Validating addresses using OpenStreetMap Nominatim API</p>
         </div>
 
         <!-- Progress Section -->

@@ -18,7 +18,6 @@ class AddressValidationService
         ]));
 
         try {
-
             Log::info('OSM API REQUEST', [
                 'address' => $fullAddress
             ]);
@@ -44,8 +43,6 @@ class AddressValidationService
                     'status' => 'invalid',
                     'message' => 'Address validation service unavailable',
                     'corrected_address' => null,
-                    'google_api_response' => null,
-                    'is_google_verified' => false,
                 ];
             }
 
@@ -56,29 +53,32 @@ class AddressValidationService
                     'status' => 'invalid',
                     'message' => 'Address not found',
                     'corrected_address' => null,
-                    'google_api_response' => null,
-                    'is_google_verified' => false,
                 ];
             }
 
             $result = $results[0];
 
+            // Extract address components from OSM response
+            $correctedAddress = $this->extractAddressComponents($result);
+
+            // Check if the address was corrected
+            $isCorrected = $this->isAddressCorrected($addressData, $correctedAddress);
+
+            if ($isCorrected) {
+                return [
+                    'status' => 'corrected',
+                    'message' => 'Address was corrected based on OSM suggestions',
+                    'corrected_address' => $correctedAddress,
+                ];
+            }
+
             return [
                 'status' => 'valid',
                 'message' => 'Address verified successfully',
-                'corrected_address' => [
-                    'address_1' => $addressData['address_1'] ?? '',
-                    'address_2' => $addressData['address_2'] ?? '',
-                    'suburb' => $addressData['suburb'] ?? '',
-                    'state' => $addressData['state'] ?? '',
-                    'postcode' => $addressData['postcode'] ?? '',
-                ],
-                'google_api_response' => $result,
-                'is_google_verified' => false,
+                'corrected_address' => null,
             ];
 
         } catch (\Exception $e) {
-
             Log::error('OSM Validation Error', [
                 'error' => $e->getMessage()
             ]);
@@ -87,9 +87,75 @@ class AddressValidationService
                 'status' => 'invalid',
                 'message' => 'Validation error: ' . $e->getMessage(),
                 'corrected_address' => null,
-                'google_api_response' => null,
-                'is_google_verified' => false,
             ];
         }
+    }
+
+    /**
+     * Extract address components from OSM Nominatim response
+     *
+     * @param array $result
+     * @return array
+     */
+    protected function extractAddressComponents(array $result): array
+    {
+        $address = $result['address'] ?? [];
+        
+        $components = [
+            'address_1' => '',
+            'address_2' => '',
+            'suburb' => '',
+            'state' => '',
+            'postcode' => '',
+        ];
+
+        // Build address_1 from house number and road/street
+        if (!empty($address['house_number']) && !empty($address['road'])) {
+            $components['address_1'] = $address['house_number'] . ' ' . $address['road'];
+        } elseif (!empty($address['road'])) {
+            $components['address_1'] = $address['road'];
+        }
+
+        // suburb can be in different fields
+        $components['suburb'] = $address['suburb'] ?? $address['city'] ?? $address['town'] ?? $address['village'] ?? '';
+
+        // state
+        $components['state'] = $address['state'] ?? '';
+
+        // postcode
+        $components['postcode'] = $address['postcode'] ?? '';
+
+        return $components;
+    }
+
+    /**
+     * Check if address was corrected by OSM
+     *
+     * @param array $original
+     * @param array $corrected
+     * @return bool
+     */
+    protected function isAddressCorrected(array $original, array $corrected): bool
+    {
+        // Normalize for comparison
+        $normalize = function($str) {
+            return strtolower(trim(preg_replace('/\s+/', ' ', $str)));
+        };
+
+        $originalNormalized = array_map($normalize, $original);
+        $correctedNormalized = array_map($normalize, $corrected);
+
+        // Check if any significant field changed
+        $significantFields = ['address_1', 'suburb', 'state', 'postcode'];
+        
+        foreach ($significantFields as $field) {
+            if (!empty($originalNormalized[$field]) && 
+                !empty($correctedNormalized[$field]) && 
+                $originalNormalized[$field] !== $correctedNormalized[$field]) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

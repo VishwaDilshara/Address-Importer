@@ -20,14 +20,11 @@ class Address extends Model
         'corrected_suburb',
         'corrected_state',
         'corrected_postcode',
-        'google_api_response',
-        'is_google_verified',
         'imported_at',
     ];
 
     protected $casts = [
         'imported_at' => 'datetime',
-        'google_api_response' => 'array',
     ];
 
     public static function validateAddress(array $data): array
