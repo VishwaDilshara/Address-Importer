@@ -24,7 +24,7 @@ class AddressImportController extends Controller
 
         return view('address-import.index', compact('pendingValidAddresses', 'pendingInvalidAddresses', 'dbValidAddresses', 'dbInvalidAddresses', 'dbCorrectedAddresses'));
     }
-
+    // Import addresses from CSV file
     public function import(Request $request)
     {
         $request->validate([

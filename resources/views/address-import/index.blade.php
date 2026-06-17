@@ -109,7 +109,7 @@
         @endif
 
         <!-- Database Valid Addresses -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <!-- <div class="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 class="text-xl font-semibold text-green-700 mb-4">Database Valid Addresses ({{ $dbValidAddresses->count() }})</h2>
             @if($dbValidAddresses->count() > 0)
                 <div class="overflow-x-auto">
@@ -141,7 +141,7 @@
             @else
                 <p class="text-gray-500">No valid addresses in database yet.</p>
             @endif
-        </div>
+        </div> -->
 
         <!-- Database Corrected Addresses -->
         @if($dbCorrectedAddresses->count() > 0)
