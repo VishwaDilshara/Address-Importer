@@ -1,132 +1,63 @@
-# Address Importer
+# Address Import & Validation - Setup Instructions
 
-A Laravel-based web application for importing and validating Australian addresses from CSV files. This application provides a user-friendly interface to upload CSV files, validate address data against Australian standards, and store valid addresses in the database.
+## Overview
+This Laravel application now includes real address verification using Google Geocoding API and a professional processing UI with animated progress tracking.
 
-## Features
+## New Features
 
-- **CSV File Upload**: Upload CSV or Excel files containing address data
-- **Smart Column Mapping**: Automatically maps CSV columns to address fields
-- **Australian Address Validation**: Validates addresses against Australian standards
-  - Required fields: Address Line 1, Suburb, State, Postcode
-  - Postcode format validation (4 digits)
-  - Australian state code validation (NSW, VIC, QLD, SA, WA, TAS, NT, ACT)
-- **Two-Step Import Process**: Preview validated data before inserting into database
-- **Validation Status Tracking**: Track valid and invalid addresses separately
-- **Error Reporting**: Detailed error messages for invalid addresses
-- **Modern UI**: Clean, responsive interface built with Tailwind CSS
+### 1. Real Address Verification
+- Validates addresses against Google Geocoding API
+- Combines Address 1, Address 2, Suburb, State, and Postcode for full address validation
+- Marks records as:
+  - **Valid Address** - Address exists and matches exactly
+  - **Invalid Address** - Address not found or doesn't exist
+  - **Corrected Address** - API returned a better match/suggestion
+- Stores validation results and messages for each record
+- Displays suggested corrections when available
 
-## Requirements
+### 2. Professional Validation Processing UI
+- Modern processing screen with animated progress bar
+- Real-time progress updates showing current record being processed
+- Visual status indicators:
+  - Green checkmark for valid addresses
+  - Red cross for invalid addresses
+  - Yellow warning icon for corrected addresses
+- Summary statistics after processing completion
+- Smooth animations and SaaS-style user experience
 
-- PHP >= 8.2
-- Composer
-- Node.js & NPM
-- MySQL, PostgreSQL, or SQLite database
+## Setup Instructions
 
-## Installation
+### 1. Configure openstreetmap API Key
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd Address-Importer
-   ```
-
-2. **Install dependencies**
-   ```bash
-   composer install
-   npm install
-   ```
-
-3. **Environment setup**
-   ```bash
-   cp .env.example .env
-   php artisan key:generate
-   ```
-
-4. **Configure database**
-   Edit `.env` file and set your database credentials:
-   ```env
-   DB_CONNECTION=mysql
-   DB_HOST=127.0.0.1
-   DB_PORT=3306
-   DB_DATABASE=address_importer
-   DB_USERNAME=your_username
-   DB_PASSWORD=your_password
-   ```
-
-5. **Run migrations**
-   ```bash
-   php artisan migrate
-   ```
-
-6. **Build assets**
-   ```bash
-   npm run build
-   ```
-
-7. **Start the development server**
-   ```bash
-   php artisan serve
-   ```
-
-   Access the application at `http://localhost:8000`
-
-## Usage
-
-### Importing Addresses
-
-1. Navigate to the home page
-2. Click "Choose File" and select your CSV file
-3. Click "Import CSV" to upload and validate
-4. Review the validation results:
-   - **Valid Addresses**: Shown in green, ready to be inserted
-   - **Invalid Addresses**: Shown in red with error details
-5. Click "Insert to Table" to save valid addresses to the database
-
-### CSV Format Requirements
-
-Your CSV file should contain the following columns (headers can vary):
-
-- **Address Line 1** (required): Street address
-- **Address Line 2** (optional): Apartment, suite, unit, etc.
-- **Suburb** (required): Suburb or city name
-- **State** (required): Australian state code (NSW, VIC, QLD, SA, WA, TAS, NT, ACT)
-- **Postcode** (required): 4-digit Australian postcode
-
-**Example CSV:**
-```csv
-Address1,Address2,Suburb,State,Postcode
-123 Main Street,Apt 4,Sydney,NSW,2000
-456 George Street,,Melbourne,VIC,3000
+```
+https://nominatim.openstreetmap.org/search
 ```
 
+**Note:** You need to enable the Geocoding API in your Google Cloud Console for this key to work.
 
-### Validation Rules
+### 2. Run Database Migrations
 
-The application validates addresses according to Australian standards:
+The migration has already been run, but if you need to reset:
 
-- **Address Line 1**: Must not be empty
-- **Suburb**: Must not be empty
-- **State**: Must be a valid Australian state code:
-  - NSW (New South Wales)
-  - VIC (Victoria)
-  - QLD (Queensland)
-  - SA (South Australia)
-  - WA (Western Australia)
-  - TAS (Tasmania)
-  - NT (Northern Territory)
-  - ACT (Australian Capital Territory)
-- **Postcode**: Must be exactly 4 digits
-
-## Testing
-
-Test CSV files are included in the project root:
-
-- `test-address-list.csv`: Valid addresses for testing
-- `test-address-list_invalid.csv`: Invalid addresses for testing validation
-
-Run the test suite:
 ```bash
-php artisan test
+php artisan migrate:rollback
+php artisan migrate
+```
+
+### 3. Start Queue Worker
+
+The address verification uses Laravel queues for async processing. Start the queue worker:
+
+```bash
+php artisan queue:work
+```
+
+**Important:** Keep this running in a separate terminal window while testing the import functionality.
+
+### 4. Start Laravel Server
+
+```bash
+php artisan serve
 ```
 
 ## Project Structure
